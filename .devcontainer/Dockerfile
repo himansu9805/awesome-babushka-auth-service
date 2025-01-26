@@ -16,7 +16,8 @@ RUN pacman -Syu --noconfirm \
     iputils \
     gcc \
     curl \
-    vim
+    vim \
+    less
 
 # Create pip config directory and add configuration
 RUN mkdir -p /root/.config/pip && \
