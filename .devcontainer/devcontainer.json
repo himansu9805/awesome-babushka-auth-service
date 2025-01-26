@@ -13,5 +13,21 @@
     "TZ": "Asia/Kolkata"
   },
   "postAttachCommand": "pip install pre-commit && pre-commit install --install-hooks",
-  "shutdownAction": "stopContainer"
+  "shutdownAction": "stopContainer",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.flake8",
+        "ms-python.isort",
+        "ms-python.pylint",
+        "ms-python.black-formatter",
+        "ms-python.autopep8",
+        "njpwerner.autodocstring",
+        "ms-python.vscode-pylance",
+        "oven.bun-vscode",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ]
+    }
+  }
 }
