@@ -17,6 +17,7 @@ RUN pacman -Syu --noconfirm \
     gcc \
     curl \
     vim \
+    tree \
     less
 
 # Create pip config directory and add configuration
