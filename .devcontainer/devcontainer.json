@@ -1,0 +1,17 @@
+{
+  "name": "Arch Linux Container",
+  "runArgs": [
+    "--privileged",
+    "--user=root",
+    "--rm"
+  ],
+  "build": {
+    "context": "..",
+    "dockerfile": "Dockerfile"
+  },
+  "containerEnv": {
+    "TZ": "Asia/Kolkata"
+  },
+  "postAttachCommand": "pip install pre-commit && pre-commit install --install-hooks",
+  "shutdownAction": "stopContainer"
+}
