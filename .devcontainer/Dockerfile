@@ -23,3 +23,5 @@ RUN pacman -Syu --noconfirm \
 # Create pip config directory and add configuration
 RUN mkdir -p /root/.config/pip && \
     echo -e "[global]\nbreak-system-packages = true\nroot-user-action = ignore" > /root/.config/pip/pip.conf
+
+RUN git config --global core.editor "vim"
