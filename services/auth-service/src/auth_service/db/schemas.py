@@ -19,3 +19,10 @@ class UserLogin(BaseModel):
 
     username: str = Field(..., examples=["johndoe", "janedoe"])
     password: str = Field(..., examples=["password123", "password456"])
+
+
+class Token(BaseModel):
+    """Token model"""
+
+    access_token: str = Field(..., examples=["access_token"])
+    token_type: str = Field(..., examples=["bearer"])

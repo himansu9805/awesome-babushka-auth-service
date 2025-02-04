@@ -3,7 +3,8 @@
   "runArgs": [
     "--privileged",
     "--user=root",
-    "--rm"
+    "--rm",
+    "--network=babushka-net"
   ],
   "build": {
     "context": "..",
@@ -26,7 +27,8 @@
         "ms-python.vscode-pylance",
         "oven.bun-vscode",
         "GitHub.copilot",
-        "GitHub.copilot-chat"
+        "GitHub.copilot-chat",
+        "cweijan.vscode-database-client2"
       ]
     }
   }
