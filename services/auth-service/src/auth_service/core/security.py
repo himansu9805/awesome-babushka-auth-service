@@ -95,6 +95,5 @@ def decode_token(token: HTTPAuthorizationCredentials) -> dict:
         return {"error": "Token has expired"}
     except jwt.JWTError:
         return {"error": "Invalid token"}
-    except Exception as e:
-        print(token, e)
+    except Exception:
         return {"error": "An unknown error occurred while decoding the token"}

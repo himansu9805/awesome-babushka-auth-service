@@ -69,7 +69,7 @@ class AuthService:
         except Exception:
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"error": "Unable to regisiter user"},
+                content={"error": "Unable to register user"},
             )
         if settings.ENABLE_EMAIL:
             await send_verification_email(
@@ -165,7 +165,7 @@ class AuthService:
                 content={"error": "User not found"},
             )
         self.db[settings.TOKEN_COLLECTION].delete_one({"token": token})
-        self.db["users"].update_one(
+        self.db[settings.USER_COLLECTION].update_one(
             {"email": db_token["email"]},
             {
                 "$set": {
