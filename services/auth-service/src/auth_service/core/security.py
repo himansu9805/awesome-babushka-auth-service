@@ -1,10 +1,11 @@
-""" Security utilities """
+"""Security utilities"""
 
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 
 from auth_service.core.config import settings
+from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
 from passlib.context import CryptContext
 
@@ -54,3 +55,46 @@ def create_access_token(data: dict) -> str:
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
+
+
+def create_refresh_token(data: dict) -> str:
+    """Create a refresh token.
+
+    Args:
+        data (dict): The data to encode in the token.
+
+    Returns:
+        str: The encoded token.
+    """
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(days=30)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
+
+
+def decode_token(token: HTTPAuthorizationCredentials) -> dict:
+    """Decode a token.
+
+    Args:
+        token (str): The token to decode.
+
+    Returns:
+        dict: The decoded token data.
+    """
+    try:
+        payload = jwt.decode(
+            token.credentials,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {"error": "Token has expired"}
+    except jwt.JWTError:
+        return {"error": "Invalid token"}
+    except Exception as e:
+        print(token, e)
+        return {"error": "An unknown error occurred while decoding the token"}

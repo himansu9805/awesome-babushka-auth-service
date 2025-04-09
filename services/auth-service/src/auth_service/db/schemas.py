@@ -1,4 +1,6 @@
-""" Models for the auth service """
+"""Models for the auth service"""
+
+from typing import Optional
 
 from pydantic import BaseModel
 from pydantic.fields import Field
@@ -26,3 +28,12 @@ class Token(BaseModel):
 
     access_token: str = Field(..., examples=["access_token"])
     token_type: str = Field(..., examples=["bearer"])
+
+
+class GenericResponse(BaseModel):
+    """Generic response model"""
+
+    message: Optional[str] = Field(
+        ..., examples=["User registered successfully"]
+    )
+    error: Optional[str] = Field(..., examples=["Invalid credentials"])

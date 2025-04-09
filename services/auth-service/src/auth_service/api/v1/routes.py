@@ -1,13 +1,15 @@
-""" Routes for the auth service """
+"""Routes for the auth service"""
 
 from auth_service.db.schemas import UserCreate
 from auth_service.db.schemas import UserLogin
-from auth_service.services.auth import authenticate_user
-from auth_service.services.auth import register_user
-from auth_service.services.auth import verify_user_email
+from auth_service.services.auth import AuthService
 from fastapi import APIRouter
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
+auth_service = AuthService()
 
 
 @auth_router.post("/register")
@@ -20,7 +22,7 @@ async def register(user: UserCreate):
     ### Returns:
     - **dict**: The registered user.
     """
-    return await register_user(user)
+    return await auth_service.register_user(user)
 
 
 @auth_router.post("/login")
@@ -33,7 +35,7 @@ def login(user: UserLogin):
     ### Returns:
     - **dict**: The access token.
     """
-    return authenticate_user(user)
+    return auth_service.authenticate_user(user)
 
 
 @auth_router.get("/verify")
@@ -47,4 +49,16 @@ async def verify_email(token: str):
     - **dict**: The verification status.
     """
 
-    return await verify_user_email(token)
+    return await auth_service.verify_user_email(token)
+
+
+@auth_router.get("/logout")
+async def logout(
+    access_token: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+):
+    """This route logs out a user.
+
+    ### Returns:
+    - **dict**: The logout status.
+    """
+    return await auth_service.logout_user(access_token)

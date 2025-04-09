@@ -1,47 +1,41 @@
-""" Database models for the auth service """
+"""Database models for the auth service"""
 
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 
-from auth_service.db.database import Base
-from sqlalchemy import Column
-from sqlalchemy import DateTime
-from sqlalchemy import Integer
-from sqlalchemy import String
+from pydantic import BaseModel
+from pydantic.fields import Field
 
 
-class User(Base):
+class User(BaseModel):
     """User model"""
 
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
-    password = Column(String, nullable=False)
-    verified = Column(Integer, nullable=False, default=0)
-    active = Column(Integer, nullable=False, default=1)
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=datetime.now(timezone.utc),
+    username: str = Field(..., examples=["johndoe", "janedoe"])
+    email: str = Field(
+        ..., examples=["john.doe@example.com", "jane.doe@example.com"]
     )
-    updated_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=datetime.now(timezone.utc),
+    password: str = Field(..., examples=["password123", "password456"])
+    verified: bool = Field(False, examples=[True, False])
+    active: bool = Field(True, examples=[True, False])
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        examples=[datetime.now(timezone.utc)],
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        examples=[datetime.now(timezone.utc)],
     )
 
 
-class VerificationToken(Base):
+class Token(BaseModel):
     """Verification token model"""
 
-    __tablename__ = "verification_tokens"
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, nullable=False, index=True)
-    token = Column(String, nullable=False)
-    expires_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=datetime.now(timezone.utc) + timedelta(days=1),
+    email: str = Field(
+        ..., examples=["john.doe@example.com", "jane.doe@example.com"]
+    )
+    token: str = Field(..., examples=["verification_token"])
+    expires_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=1),
+        examples=[datetime.now(timezone.utc) + timedelta(days=1)],
     )
