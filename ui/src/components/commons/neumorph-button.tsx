@@ -66,6 +66,19 @@ const buttonVariants = cva(
           "disabled:shadow-none",
           "active:bg-[#000000]",
           "active:[box-shadow:inset_0px_-1.5px_0px_0px_#000000,_0px_0.5px_2px_0px_rgba(0,_0,_0,_70%)]",
+        ],
+        white: [
+          "bg-[#FFFFFF]",
+          "text-[#000000]",
+          "hover:enabled:bg-[#F0F0F0]",
+          "disabled:bg-[#E0E0E0]",
+          "[box-shadow:inset_0px_-2.108433723449707px_0px_0px_#E0E0E0,_0px_1.2048193216323853px_6.325301647186279px_0px_rgba(255,_255,_255,_10%)]",
+          "hover:enabled:[box-shadow:inset_0px_-2.53012px_0px_0px_#F8F8F8,_0px_1.44578px_7.59036px_0px_rgba(255,_255,_255,_12%)]",
+          "disabled:shadow-none",
+          "border",
+          "border-[#E0E0E0]",
+          "active:bg-[#F8F8F8]",
+          "active:[box-shadow:inset_0px_-1.5px_0px_0px_#D8D8D8,_0px_0.5px_2px_0px_rgba(255,_255,_255,_15%)]",
         ]
       },
       size: {
@@ -79,7 +92,7 @@ const buttonVariants = cva(
     },
     compoundVariants: [
       {
-        intent: ["default", "primary", "secondary", "danger", "black"],
+        intent: ["default", "primary", "secondary", "danger", "black", "white"],
         size: "medium",
         className: "uppercase",
       },

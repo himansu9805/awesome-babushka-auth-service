@@ -1,13 +1,13 @@
-import { SocialMediaLayout } from '@/layouts/SocialMediaLayout'
-import './App.css'
+import React from "react";
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
-
   return (
-    <main>
-      <SocialMediaLayout />
-    </main>
-  )
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
