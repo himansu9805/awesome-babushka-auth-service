@@ -1,16 +1,13 @@
 import React from "react";
 import NeumorphButton from "@/components/commons/neumorph-button";
-import { Link } from "react-router-dom";
-import Divider from "@/components/commons/divider";
 
 const SignupForm = () => {
   return (
-
-    <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+    <div className="w-full max-w-md p-8 space-y-6">
       <h1 className="text-2xl font-bold text-left text-gray-700">
         Sign up to continue
       </h1>
-      <form className="space-y-6">
+      <form className="space-y-5">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
             Username
@@ -47,7 +44,7 @@ const SignupForm = () => {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>
-        <NeumorphButton fullWidth>Sign up</NeumorphButton>
+        <NeumorphButton fullWidth className="mt-8">Sign up</NeumorphButton>
         <div className="text-black text-xs mt-4 text-start w-full">
           By continuing, you agree to our <a href="#" className="text-blue-400 underline">Terms of Service</a>, <a href="#" className="text-blue-400 underline">Privacy Policy</a>, and <a href="#" className="text-blue-400 underline">Cookie Use</a>. Your privacy is our priority.
         </div>
