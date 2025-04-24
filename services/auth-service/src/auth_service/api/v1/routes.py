@@ -62,3 +62,18 @@ async def logout(
     - **dict**: The logout status.
     """
     return await auth_service.logout_user(access_token)
+
+
+@auth_router.get("/validate")
+async def validate_token(
+    access_token: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+):
+    """This route validates a user's token.
+
+    ### Args:
+    - **access_token** (`HTTPAuthorizationCredentials`): The access token.
+
+    ### Returns:
+    - **dict**: The token validation status.
+    """
+    return await auth_service.validate_token(access_token)

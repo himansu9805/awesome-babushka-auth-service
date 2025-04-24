@@ -94,16 +94,22 @@ class AuthService:
                 authentication is successful.
             JSONResponse: Error message if authentication fails.
         """
-        user_details = User(
-            **self.db[settings.USER_COLLECTION].find_one(
-                {"username": user_request.username}
+        print(user_request.username)
+        username = user_request.username
+        if not username:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"error": "Username is required"},
             )
+        user_details = self.db[settings.USER_COLLECTION].find_one(
+            {"username": user_request.username}
         )
         if not user_details:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={"error": "User does not exist"},
             )
+        user_details = User(**user_details)
         if not pwd_context.verify(
             user_request.password, user_details.password
         ):
@@ -201,3 +207,44 @@ class AuthService:
         response.delete_cookie(key="access_token")
         response.delete_cookie(key="refresh_token")
         return response
+
+    async def validate_token(
+        self,
+        access_token: HTTPAuthorizationCredentials,
+    ) -> JSONResponse:
+        """Validate a token.
+
+        Args:
+            access_token (HTTPAuthorizationCredentials): Access token.
+
+        Returns:
+            JSONResponse: Token validation status.
+        """
+        decoded_token = decode_token(access_token)
+        if "error" in decoded_token:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"error": decoded_token["error"]},
+            )
+        user_details = self.db[settings.USER_COLLECTION].find_one(
+            {"username": decoded_token["username"]}
+        )
+        if not user_details:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"error": "User does not exist"},
+            )
+        user_details = User(**user_details)
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "valid": True,
+                "user": user_details.model_dump(
+                    exclude={
+                        "password",
+                        "created_at",
+                        "updated_at",
+                    }
+                ),
+            },
+        )
