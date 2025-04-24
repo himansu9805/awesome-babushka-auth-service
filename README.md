@@ -1,41 +1,105 @@
-# awesome-babushka
+# Awesome Babushka
 
-## Name
-Choose a self-explaining name for your project.
+Awesome Babushka is a next-generation, full-stack social platform engineered to foster authentic conversations and meaningful connections. Leveraging a modern technology stack—Bun, Vite, React, TailwindCSS on the frontend, and FastAPI with MongoDB on the backend—it delivers a seamless, adaptive, and secure user experience.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Features
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+- 🧑‍💻 **Modern UI**: Responsive, accessible, and visually appealing interface built with React, TailwindCSS, and Neumorphism-inspired components.
+- 🔒 **Robust Authentication**: Secure registration, login, JWT-based session management, and email verification.
+- 🗨️ **Interactive Social Feed**: Create posts, like, comment, and engage with the community in real time.
+- 🏠 **Personalized Home**: Dynamic layouts, animated UI elements, and user-focused content areas.
+- ⚡ **High Performance**: Fast development and deployment powered by Bun, Vite, FastAPI, and MongoDB.
+- 📧 **Integrated Email**: Configurable email verification and notifications for enhanced security and engagement.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## Getting Started
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### Prerequisites
+
+- [Bun](https://bun.sh/) (>=1.0.0)
+- Node.js (>=18) *(if not using Bun for all tooling)*
+- Python (>=3.10)
+- MongoDB (local or remote)
+- *Optional*: Docker for containerized development
+
+### Installation
+
+#### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-org/awesome-babushka.git
+cd awesome-babushka/ui-dev
+```
+
+#### 2. Install frontend dependencies
+
+```bash
+cd ui
+bun install
+```
+
+#### 3. Install backend dependencies
+
+```bash
+cd ../services/auth-service
+pip install -r requirements.txt
+```
+
+#### 4. Configure environment variables
+
+Copy `.env.example` to `.env` in `services/auth-service` and update as needed.
+
+#### 5. Start the backend
+
+```bash
+cd services/auth-service/src
+uvicorn auth_service.main:api --reload
+```
+
+#### 6. Start the frontend
+
+```bash
+cd ui
+bun run dev
+```
+
+Visit [http://localhost:5173](http://localhost:5173) to access the application.
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+- Register a new account or sign in.
+- Explore the social feed, create posts, and interact with the community.
+- Experience a dynamic, animated, and user-friendly platform.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## Development
+
+- **Linting:**  
+  - Frontend: `bun run lint`
+  - Backend: `pre-commit run --all-files`
+- **Formatting:**  
+  - Frontend: ESLint and Prettier
+  - Backend: Black, isort, and flake8
+- **Testing:**  
+  - *(Add your test instructions here if available)*
 
 ## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+We welcome contributions from the community! Please open issues or submit pull requests for new features, bug fixes, or suggestions.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+1. Fork the repository and create your feature branch.
+2. Make your changes and add tests where appropriate.
+3. Run linting and formatting checks.
+4. Submit a pull request for review.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+[MIT](LICENSE) © 2024 Awesome Babushka Contributors
+
+## Authors & Acknowledgments
+
+- [@himansu9805](https://github.com/himansu9805)
+- [@algoberzerker](https://github.com/algoberzerker)
+- Special thanks to all contributors and the open-source community.
+
+## Project Status
+
+🚧 **Pre-alpha**: This project is under active development. Features and APIs are subject to change. Feedback and contributions are highly encouraged!
