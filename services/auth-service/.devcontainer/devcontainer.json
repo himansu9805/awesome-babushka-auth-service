@@ -26,6 +26,6 @@
     }
   },
   "remoteUser": "root",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-  "workspaceFolder": "/workspace"
+  "workspaceMount": "source=${localWorkspaceFolder}/../..,target=/workspaces/awesome-babushka,type=bind",
+  "workspaceFolder": "/workspaces/awesome-babushka/services/auth-service"
 }

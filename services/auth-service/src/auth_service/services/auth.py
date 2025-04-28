@@ -1,24 +1,21 @@
 """Service for handling authentication."""
 
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 from uuid import uuid4
 
-from auth_service.core.config import settings
-from auth_service.core.security import create_access_token
-from auth_service.core.security import create_refresh_token
-from auth_service.core.security import decode_token
-from auth_service.db.models import Token
-from auth_service.db.models import User
-from auth_service.db.schemas import UserCreate
-from auth_service.db.schemas import UserLogin
-from auth_service.services.email_agent import send_verification_email
 from fastapi import status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
+
+from auth_service.core.config import settings
+from auth_service.core.security import (create_access_token,
+                                        create_refresh_token, decode_token)
+from auth_service.db.models import Token, User
+from auth_service.db.schemas import UserCreate, UserLogin
+from auth_service.services.email_agent import send_verification_email
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -248,3 +245,48 @@ class AuthService:
                 ),
             },
         )
+
+    async def refresh_access_token(
+        self,
+        refresh_token: HTTPAuthorizationCredentials,
+    ) -> JSONResponse:
+        """Refresh a token.
+
+        Args:
+            refresh_token (HTTPAuthorizationCredentials): Refresh token.
+
+        Returns:
+            JSONResponse: New access token.
+        """
+        decoded_token = decode_token(refresh_token)
+        if "error" in decoded_token:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"error": decoded_token["error"]},
+            )
+        user_details = self.db[settings.USER_COLLECTION].find_one(
+            {"username": decoded_token["username"]}
+        )
+        if not user_details:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"error": "User does not exist"},
+            )
+        user_details = User(**user_details)
+        token_data = user_details.model_dump(
+            exclude={
+                "password",
+                "created_at",
+                "updated_at",
+            }
+        )
+        access_token = create_access_token(token_data)
+        response = JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "access_token": access_token,
+                "token_type": "bearer",
+            },
+        )
+        response.set_cookie(key="access_token", value=access_token)
+        return response

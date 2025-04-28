@@ -12,7 +12,7 @@ class Settings:
         # ------------- MongoDB Config -------------
         self.MONGO_URI: str = os.getenv(
             "MONGO_URI",
-            "mongodb://127.0.0.1:27017/?directConnection=true&"
+            "mongodb://172.17.0.1:27017/?directConnection=true&"
             "serverSelectionTimeoutMS=2000&appName=mongosh+2.3.9",
         )
         self.DB_NAME: str = os.getenv("DB_NAME", "test")

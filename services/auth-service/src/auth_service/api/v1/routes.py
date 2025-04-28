@@ -77,3 +77,18 @@ async def validate_token(
     - **dict**: The token validation status.
     """
     return await auth_service.validate_token(access_token)
+
+
+@auth_router.get("/refresh")
+async def refresh_access_token(
+    refresh_token: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+):
+    """This route refreshes a user's access token.
+
+    ### Args:
+    - **refresh_token** (`HTTPAuthorizationCredentials`): The refresh token.
+
+    ### Returns:
+    - **dict**: The new access token.
+    """
+    return await auth_service.refresh_access_token(refresh_token)
