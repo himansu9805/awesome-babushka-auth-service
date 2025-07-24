@@ -1,15 +1,12 @@
 """Security utilities"""
 
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 
-from auth_service.core.config import settings
+import bcrypt
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
-from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from auth_service.core.config import settings
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -22,7 +19,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         bool: Whether the passwords match.
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+    )
 
 
 def hash_password(password: str) -> str:
@@ -34,7 +33,9 @@ def hash_password(password: str) -> str:
     Returns:
         str: The hashed password.
     """
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed.decode("utf-8")
 
 
 def create_access_token(data: dict) -> str:
@@ -95,5 +96,3 @@ def decode_token(token: HTTPAuthorizationCredentials) -> dict:
         return {"error": "Token has expired"}
     except jwt.JWTError:
         return {"error": "Invalid token"}
-    except Exception:
-        return {"error": "An unknown error occurred while decoding the token"}

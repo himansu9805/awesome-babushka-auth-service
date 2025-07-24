@@ -1,9 +1,11 @@
 """Main module for the auth service."""
 
 import uvicorn
-from auth_service.api.v1.routes import auth_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from auth_service.api.v1.auth import auth_router
+from auth_service.api.v1.token import token_router
 
 api = FastAPI(title="Auth Service", version="0.1.0")
 
@@ -16,6 +18,7 @@ api.add_middleware(
 )
 
 api.include_router(auth_router, prefix="/api/v1")
+api.include_router(token_router, prefix="/api/v1")
 
 
 def main():
