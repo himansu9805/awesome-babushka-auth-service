@@ -32,7 +32,7 @@ pyasn1==0.6.1
 pydantic==2.10.6
 pydantic_core==2.27.2
 Pygments==2.19.1
-pymongo==4.12.0
+pymongo==4.13.2
 python-jose==3.3.0
 PyYAML==6.0.2
 requests==2.32.3
@@ -50,3 +50,4 @@ urllib3==2.3.0
 uvicorn==0.34.0
 virtualenv==20.29.2
 wrapt==1.17.2
+awesome-babushka-commons @ git+https://github.com/himansu9805/awesome-babushka-commons.git@main

@@ -1,22 +1,27 @@
 """Service for handling authentication."""
 
+import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from commons.database import MongoConnect
 from fastapi import status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from passlib.context import CryptContext
-from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
 from auth_service.core.config import settings
-from auth_service.core.security import (create_access_token,
-                                        create_refresh_token, decode_token)
+from auth_service.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 from auth_service.db.models import Token, User
 from auth_service.db.schemas import UserCreate, UserLogin
 from auth_service.services.email_agent import send_verification_email
 
+logger = logging.getLogger(__file__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -25,13 +30,17 @@ class AuthService:
 
     def __init__(self):
         """Initialize the AuthService class."""
-
-        self.mongo_connection = MongoClient(settings.MONGO_URI, connect=False)
-        self.db = self.mongo_connection[settings.DB_NAME]
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        self.mongo_connection = MongoConnect(
+            settings.MONGO_URI, settings.DB_NAME
+        )
 
     def __del__(self):
         """Close the MongoDB connection."""
-        self.db.close()
+        self.mongo_connection.close()
 
     async def register_user(self, user: UserCreate) -> JSONResponse:
         """Register a new user.
@@ -50,14 +59,16 @@ class AuthService:
                 email=user.email,
                 password=hashed_password,
             )
-            self.db[settings.USER_COLLECTION].insert_one(db_user.model_dump())
+            self.mongo_connection.get_collection(
+                settings.USER_COLLECTION
+            ).insert_one(db_user.model_dump())
             db_token = Token(
                 email=user.email,
                 token=verification_token,
             )
-            self.db[settings.TOKEN_COLLECTION].insert_one(
-                db_token.model_dump()
-            )
+            self.mongo_connection.get_collection(
+                settings.TOKEN_COLLECTION
+            ).insert_one(db_token.model_dump())
         except DuplicateKeyError:
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
@@ -91,16 +102,15 @@ class AuthService:
                 authentication is successful.
             JSONResponse: Error message if authentication fails.
         """
-        print(user_request.username)
         username = user_request.username
         if not username:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={"error": "Username is required"},
             )
-        user_details = self.db[settings.USER_COLLECTION].find_one(
-            {"username": user_request.username}
-        )
+        user_details = self.mongo_connection.get_collection(
+            settings.USER_COLLECTION
+        ).find_one({"username": user_request.username})
         if not user_details:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -151,24 +161,28 @@ class AuthService:
         Returns:
             JSONResponse: Verification status message.
         """
-        db_token = self.db[settings.TOKEN_COLLECTION].find_one(
-            {"token": token}
-        )
+        db_token = self.mongo_connection.get_collection(
+            settings.TOKEN_COLLECTION
+        ).find_one({"token": token})
         if not db_token:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={"error": "Token not found"},
             )
-        db_user = self.db[settings.USER_COLLECTION].find_one(
-            {"email": db_token["email"]}
-        )
+        db_user = self.mongo_connection.get_collection(
+            settings.USER_COLLECTION
+        ).find_one({"email": db_token["email"]})
         if not db_user:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={"error": "User not found"},
             )
-        self.db[settings.TOKEN_COLLECTION].delete_one({"token": token})
-        self.db[settings.USER_COLLECTION].update_one(
+        self.mongo_connection.get_collection(
+            settings.TOKEN_COLLECTION
+        ).delete_one({"token": token})
+        self.mongo_connection.get_collection(
+            settings.USER_COLLECTION
+        ).update_one(
             {"email": db_token["email"]},
             {
                 "$set": {
@@ -203,90 +217,4 @@ class AuthService:
         )
         response.delete_cookie(key="access_token")
         response.delete_cookie(key="refresh_token")
-        return response
-
-    async def validate_token(
-        self,
-        access_token: HTTPAuthorizationCredentials,
-    ) -> JSONResponse:
-        """Validate a token.
-
-        Args:
-            access_token (HTTPAuthorizationCredentials): Access token.
-
-        Returns:
-            JSONResponse: Token validation status.
-        """
-        decoded_token = decode_token(access_token)
-        if "error" in decoded_token:
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"error": decoded_token["error"]},
-            )
-        user_details = self.db[settings.USER_COLLECTION].find_one(
-            {"username": decoded_token["username"]}
-        )
-        if not user_details:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"error": "User does not exist"},
-            )
-        user_details = User(**user_details)
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "valid": True,
-                "user": user_details.model_dump(
-                    exclude={
-                        "password",
-                        "created_at",
-                        "updated_at",
-                    }
-                ),
-            },
-        )
-
-    async def refresh_access_token(
-        self,
-        refresh_token: HTTPAuthorizationCredentials,
-    ) -> JSONResponse:
-        """Refresh a token.
-
-        Args:
-            refresh_token (HTTPAuthorizationCredentials): Refresh token.
-
-        Returns:
-            JSONResponse: New access token.
-        """
-        decoded_token = decode_token(refresh_token)
-        if "error" in decoded_token:
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"error": decoded_token["error"]},
-            )
-        user_details = self.db[settings.USER_COLLECTION].find_one(
-            {"username": decoded_token["username"]}
-        )
-        if not user_details:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"error": "User does not exist"},
-            )
-        user_details = User(**user_details)
-        token_data = user_details.model_dump(
-            exclude={
-                "password",
-                "created_at",
-                "updated_at",
-            }
-        )
-        access_token = create_access_token(token_data)
-        response = JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "access_token": access_token,
-                "token_type": "bearer",
-            },
-        )
-        response.set_cookie(key="access_token", value=access_token)
         return response

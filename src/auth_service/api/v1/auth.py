@@ -1,14 +1,12 @@
 """Routes for the auth service"""
 
-from auth_service.db.schemas import UserCreate
-from auth_service.db.schemas import UserLogin
-from auth_service.services.auth import AuthService
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi.security import HTTPAuthorizationCredentials
-from fastapi.security import HTTPBearer
+from fastapi import APIRouter, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-auth_router = APIRouter(prefix="/auth", tags=["auth"])
+from auth_service.db.schemas import UserCreate, UserLogin
+from auth_service.services.auth import AuthService
+
+auth_router = APIRouter(prefix="/auth", tags=["authentication"])
 auth_service = AuthService()
 
 
@@ -62,33 +60,3 @@ async def logout(
     - **dict**: The logout status.
     """
     return await auth_service.logout_user(access_token)
-
-
-@auth_router.get("/validate")
-async def validate_token(
-    access_token: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-):
-    """This route validates a user's token.
-
-    ### Args:
-    - **access_token** (`HTTPAuthorizationCredentials`): The access token.
-
-    ### Returns:
-    - **dict**: The token validation status.
-    """
-    return await auth_service.validate_token(access_token)
-
-
-@auth_router.get("/refresh")
-async def refresh_access_token(
-    refresh_token: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-):
-    """This route refreshes a user's access token.
-
-    ### Args:
-    - **refresh_token** (`HTTPAuthorizationCredentials`): The refresh token.
-
-    ### Returns:
-    - **dict**: The new access token.
-    """
-    return await auth_service.refresh_access_token(refresh_token)
