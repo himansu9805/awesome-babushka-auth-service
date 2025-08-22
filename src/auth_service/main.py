@@ -3,6 +3,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from auth_service.api.v1.auth import auth_router
 from auth_service.api.v1.token import token_router
@@ -19,6 +20,12 @@ api.add_middleware(
 
 api.include_router(auth_router, prefix="/api/v1")
 api.include_router(token_router, prefix="/api/v1")
+
+
+@api.get("/", include_in_schema=False)
+async def root():
+    """Redirect to API documentation."""
+    return RedirectResponse(url="/docs")
 
 
 def main():
