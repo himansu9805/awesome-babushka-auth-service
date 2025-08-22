@@ -12,7 +12,7 @@ Deprecated==1.2.18
 distlib==0.3.9
 dnspython==2.7.0
 ecdsa==0.19.0
-fastapi==0.115.8
+fastapi==0.116.1
 filelock==3.17.0
 greenlet==3.1.1
 h11==0.14.0
@@ -35,7 +35,7 @@ Pygments==2.19.1
 pymongo==4.13.2
 python-jose==3.3.0
 PyYAML==6.0.2
-requests==2.32.3
+requests==2.32.4
 rich==14.0.0
 rsa==4.9
 setuptools==78.1.0
@@ -51,3 +51,4 @@ uvicorn==0.34.0
 virtualenv==20.29.2
 wrapt==1.17.2
 awesome-babushka-commons @ git+https://github.com/himansu9805/awesome-babushka-commons.git@main
+python-multipart==0.0.20
