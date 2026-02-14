@@ -12,13 +12,9 @@ from passlib.context import CryptContext
 from pymongo.errors import DuplicateKeyError
 
 from auth_service.core.config import settings
-from auth_service.core.security import (
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-)
-from auth_service.db.models import Token, User
-from auth_service.db.schemas import UserCreate, UserLogin
+from auth_service.core.token import TokenUtils
+from auth_service.db.models import User, ActivationKey
+from auth_service.db.schemas import UserCreate, LoginRequest
 from auth_service.services.email_agent import send_verification_email
 
 logger = logging.getLogger(__file__)
@@ -34,22 +30,20 @@ class AuthService:
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
-        self.mongo_connection = MongoConnect(
-            settings.MONGO_URI, settings.DB_NAME
-        )
+        self.mongo_connection = MongoConnect(settings.MONGO_URI, settings.DB_NAME)
 
     def __del__(self):
         """Close the MongoDB connection."""
         self.mongo_connection.close()
 
-    async def register_user(self, user: UserCreate) -> JSONResponse:
+    async def register_user(self, user: UserCreate) -> bool:
         """Register a new user.
 
         Args:
             user (UserCreate): User details for registration.
 
         Returns:
-            GenericResponse: Response message indicating success or failure.
+            bool: Registration success status.
         """
         try:
             hashed_password = pwd_context.hash(user.password)
@@ -58,72 +52,56 @@ class AuthService:
                 username=user.username,
                 email=user.email,
                 password=hashed_password,
+                verified=False,
+                active=True,
             )
-            self.mongo_connection.get_collection(
-                settings.USER_COLLECTION
-            ).insert_one(db_user.model_dump())
-            db_token = Token(
+            self.mongo_connection.get_collection(settings.USER_COLLECTION).insert_one(
+                db_user.model_dump()
+            )
+            db_token = ActivationKey(
                 email=user.email,
                 token=verification_token,
             )
-            self.mongo_connection.get_collection(
-                settings.TOKEN_COLLECTION
-            ).insert_one(db_token.model_dump())
+            self.mongo_connection.get_collection(settings.ACTIVATION_KEY_COLLECTION).insert_one(
+                db_token.model_dump()
+            )
         except DuplicateKeyError:
-            return JSONResponse(
-                status_code=status.HTTP_409_CONFLICT,
-                content={"error": "User already exists"},
-            )
+            raise ValueError("Username or email already exists")
         except Exception:
-            return JSONResponse(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"error": "Unable to register user"},
-            )
+            raise ValueError("Failed to register user")
         if settings.ENABLE_EMAIL:
-            await send_verification_email(
-                email=user.email, token=verification_token
-            )
-        return JSONResponse(
-            status_code=status.HTTP_201_CREATED,
-            content={"message": "User registered successfully"},
-        )
+            await send_verification_email(email=user.email, token=verification_token)
+        return True
 
     def authenticate_user(
         self,
-        user_request: UserLogin,
-    ) -> JSONResponse:
+        credentials: LoginRequest,
+    ) -> dict:
         """Authenticate a user.
 
+        This method verifies the provided user credentials against the stored user data.
+
         Args:
-            user (UserLogin): User credentials for authentication.
+            credentials (LoginRequest): User credentials for authentication.
 
         Returns:
-            JSONResponse: Access token and token type if
-                authentication is successful.
-            JSONResponse: Error message if authentication fails.
+            dict: User details if authentication is successful.
+
+        Raises:
+            ValueError: If the username is missing, user does not exist,
+                or credentials are invalid.
         """
-        username = user_request.username
+        username = credentials.username
         if not username:
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content={"error": "Username is required"},
-            )
-        user_details = self.mongo_connection.get_collection(
-            settings.USER_COLLECTION
-        ).find_one({"username": user_request.username})
+            raise ValueError("Username is required")
+        user_details = self.mongo_connection.get_collection(settings.USER_COLLECTION).find_one(
+            {"username": credentials.username}
+        )
         if not user_details:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"error": "User does not exist"},
-            )
+            raise ValueError("User does not exist")
         user_details = User(**user_details)
-        if not pwd_context.verify(
-            user_request.password, user_details.password
-        ):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"error": "Invalid credentials"},
-            )
+        if not pwd_context.verify(credentials.password, user_details.password):
+            raise ValueError("Invalid credentials")
         token_data = user_details.model_dump(
             exclude={
                 "password",
@@ -131,26 +109,7 @@ class AuthService:
                 "updated_at",
             }
         )
-        access_token = create_access_token(token_data)
-        refresh_token = create_refresh_token(token_data)
-        if not access_token or not refresh_token:
-            return JSONResponse(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"error": "Internal server error"},
-            )
-        response = JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=token_data,
-        )
-        response.set_cookie(
-            key="access_token",
-            value=access_token,
-        )
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-        )
-        return response
+        return token_data
 
     async def verify_user_email(self, token: str) -> JSONResponse:
         """Verify a user's email.
@@ -162,27 +121,25 @@ class AuthService:
             JSONResponse: Verification status message.
         """
         db_token = self.mongo_connection.get_collection(
-            settings.TOKEN_COLLECTION
+            settings.ACTIVATION_KEY_COLLECTION
         ).find_one({"token": token})
         if not db_token:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={"error": "Token not found"},
             )
-        db_user = self.mongo_connection.get_collection(
-            settings.USER_COLLECTION
-        ).find_one({"email": db_token["email"]})
+        db_user = self.mongo_connection.get_collection(settings.USER_COLLECTION).find_one(
+            {"email": db_token["email"]}
+        )
         if not db_user:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={"error": "User not found"},
             )
-        self.mongo_connection.get_collection(
-            settings.TOKEN_COLLECTION
-        ).delete_one({"token": token})
-        self.mongo_connection.get_collection(
-            settings.USER_COLLECTION
-        ).update_one(
+        self.mongo_connection.get_collection(settings.ACTIVATION_KEY_COLLECTION).delete_one(
+            {"token": token}
+        )
+        self.mongo_connection.get_collection(settings.USER_COLLECTION).update_one(
             {"email": db_token["email"]},
             {
                 "$set": {
@@ -195,26 +152,3 @@ class AuthService:
             status_code=status.HTTP_200_OK,
             content={"message": "Email verified successfully"},
         )
-
-    async def logout_user(
-        self,
-        access_token: HTTPAuthorizationCredentials,
-    ) -> JSONResponse:
-        """Logout a user.
-
-        Returns:
-            JSONResponse: Logout status message.
-        """
-        decoded_token = decode_token(access_token)
-        if "error" in decoded_token:
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"error": decoded_token["error"]},
-            )
-        response = JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": "User logged out successfully"},
-        )
-        response.delete_cookie(key="access_token")
-        response.delete_cookie(key="refresh_token")
-        return response

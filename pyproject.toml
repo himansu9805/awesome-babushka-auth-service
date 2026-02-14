@@ -3,7 +3,7 @@ name = "awesome-babushka-auth-service"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<4.0"
 dependencies = [
     "aiosmtplib==4.0.0",
     "annotated-types==0.7.0",
@@ -65,3 +65,24 @@ dependencies = [
 [tool.uv.sources]
 awesome-babushka-commons = { git = "https://github.com/himansu9805/awesome-babushka-commons.git", rev = "main" }
 
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100

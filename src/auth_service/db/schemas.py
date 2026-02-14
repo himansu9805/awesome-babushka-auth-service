@@ -10,13 +10,11 @@ class UserCreate(BaseModel):
     """User creation model"""
 
     username: str = Field(..., examples=["johndoe", "janedoe"])
-    email: str = Field(
-        ..., examples=["john.doe@example.com", "jane.doe@example.com"]
-    )
+    email: str = Field(..., examples=["john.doe@example.com", "jane.doe@example.com"])
     password: str = Field(..., examples=["password123", "password456"])
 
 
-class UserLogin(BaseModel):
+class LoginRequest(BaseModel):
     """User login model"""
 
     username: str = Field(..., examples=["johndoe", "janedoe"])
@@ -33,7 +31,14 @@ class Token(BaseModel):
 class GenericResponse(BaseModel):
     """Generic response model"""
 
-    message: Optional[str] = Field(
-        ..., examples=["User registered successfully"]
-    )
+    message: Optional[str] = Field(..., examples=["User registered successfully"])
+    error: Optional[str] = Field(..., examples=["Invalid credentials"])
+
+
+class LoginResponse(BaseModel):
+    """Login response model"""
+
+    access_token: str = Field(..., examples=["access_token"])
+    token_type: str = Field(..., examples=["bearer"])
+    message: Optional[str] = Field(..., examples=["Login successful"])
     error: Optional[str] = Field(..., examples=["Invalid credentials"])
