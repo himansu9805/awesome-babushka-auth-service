@@ -66,7 +66,7 @@ dependencies = [
 awesome-babushka-commons = { git = "https://github.com/himansu9805/awesome-babushka-commons.git", rev = "main" }
 
 [tool.black]
-line-length = 100
+line-length = 79
 target-version = ['py312']
 include = '\.pyi?$'
 extend-exclude = '''
@@ -85,4 +85,4 @@ extend-exclude = '''
 
 [tool.isort]
 profile = "black"
-line_length = 100
+line_length = 79
