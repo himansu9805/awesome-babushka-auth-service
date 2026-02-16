@@ -3,7 +3,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from commons import MongoConnect
 from jose import jwt
 
 from auth_service.core.config import settings
@@ -22,22 +21,25 @@ class TokenUtils:
         """
         Create token of specified type.
 
-        **Access Tokens:** These tokens are short-lived and are used to authenticate
-        user requests. They typically have a short expiration time (e.g., 15 minutes
-        to 1 hour) and are included in the Authorization header of HTTP requests.
+        **Access Tokens:** These tokens are short-lived and are used to
+        authenticate user requests. They typically have a short expiration
+        time (e.g., 15 minutes to 1 hour) and are included in the
+        Authorization header of HTTP requests.
 
-        **Refresh Tokens:** These tokens are long-lived and are used to obtain new
-        access tokens without requiring the user to re-authenticate. They usually
-        have a longer expiration time (e.g., days to weeks) and are securely stored
-        on the client side.
+        **Refresh Tokens:** These tokens are long-lived and are used to obtain
+        new access tokens without requiring the user to re-authenticate. They
+        usually have a longer expiration time (e.g., days to weeks) and are
+        securely stored on the client side.
 
         Args:
             data (dict): The data to encode in the token.
             token_type (TokenType): The type of token to create.
-            token_family (str | None): The token family identifier for refresh tokens.
+            token_family (str | None): The token family identifier for refresh
+                tokens.
 
         Returns:
-            tuple[TokenType, str, dict]: The token type, the encoded token, and metadata.
+            tuple[TokenType, str, dict]: The token type, the encoded token, and
+                metadata.
         """
         username = data.get("username")
         if username is None:
@@ -67,7 +69,9 @@ class TokenUtils:
             }
         )
         encoded_jwt = jwt.encode(
-            to_encode, settings.JWT_PRIVATE_KEY, algorithm=settings.JWT_ALGORITHM
+            claims=to_encode,
+            key=settings.JWT_PRIVATE_KEY,
+            algorithm=settings.JWT_ALGORITHM,
         )
         metadata = {
             "jti": jti,
@@ -101,7 +105,9 @@ class TokenUtils:
         Returns:
             tuple[str, dict]: The encoded refresh token and metadata.
         """
-        _, refresh_token, metadata = TokenUtils.create_token(data, TokenType.REFRESH)
+        _, refresh_token, metadata = TokenUtils.create_token(
+            data, TokenType.REFRESH
+        )
         return refresh_token, metadata
 
     @staticmethod

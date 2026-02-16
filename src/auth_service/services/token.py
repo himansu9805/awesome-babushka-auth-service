@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from commons.database import MongoConnect
 from fastapi import HTTPException, status
-from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from pymongo import ASCENDING
@@ -45,7 +44,9 @@ class TokenService:
     def __init__(self):
         """Initialize the TokenService class."""
 
-        self.mongo_connection = MongoConnect(settings.MONGO_URI, settings.DB_NAME)
+        self.mongo_connection = MongoConnect(
+            settings.MONGO_URI, settings.DB_NAME
+        )
         self._create_indexes()
 
     def __del__(self):
@@ -59,14 +60,19 @@ class TokenService:
         - Index on `username` for efficient querying of tokens by user.
         - Index on `token_family` to facilitate family revocation of tokens.
         - TTL index on `expires_at` to automatically delete expired tokens.
-        - Compound index on `username` and `is_revoked` for faster queries related to token revocation.
+        - Compound index on `username` and `is_revoked` for faster queries
+            related to token revocation.
         """
         refresh_tokens = self.mongo_connection.db.refresh_tokens
         refresh_tokens.create_index([("jti", ASCENDING)], unique=True)
         refresh_tokens.create_index([("username", ASCENDING)])
         refresh_tokens.create_index([("token_family", ASCENDING)])
-        refresh_tokens.create_index([("expires_at", ASCENDING)], expireAfterSeconds=0)
-        refresh_tokens.create_index([("username", ASCENDING), ("is_revoked", ASCENDING)])
+        refresh_tokens.create_index(
+            [("expires_at", ASCENDING)], expireAfterSeconds=0
+        )
+        refresh_tokens.create_index(
+            [("username", ASCENDING), ("is_revoked", ASCENDING)]
+        )
 
     async def decode_token(
         self,
@@ -86,7 +92,10 @@ class TokenService:
             ValueError: If the token is invalid.
         """
         try:
-            decoded_token = TokenUtils.decode_token(token=token, expected_type=expected_type)
+            decoded_token = TokenUtils.decode_token(
+                token=token,
+                expected_type=expected_type,
+            )
             return decoded_token
         except JWTError as e:
             raise ValueError(f"Invalid token: {str(e)}")
@@ -115,9 +124,9 @@ class TokenService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=decoded_token["error"],
             )
-        user_details = self.mongo_connection.get_collection(settings.USER_COLLECTION).find_one(
-            {"username": decoded_token["username"]}
-        )
+        user_details = self.mongo_connection.get_collection(
+            settings.USER_COLLECTION
+        ).find_one({"username": decoded_token["username"]})
         if not user_details:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -190,7 +199,7 @@ class TokenService:
             TokenPair: New access and refresh tokens.
         """
         try:
-            _, payload = TokenUtils.decode_token(refresh_token, TokenType.REFRESH)
+            payload = TokenUtils.decode_token(refresh_token, TokenType.REFRESH)
         except JWTError:
             raise TokenRefreshError("Refresh token has expired or is invalid")
 
@@ -201,19 +210,25 @@ class TokenService:
         token_family = payload.get("token_family")
         username = payload.get("sub")
 
-        db_token = self.mongo_connection.db.refresh_tokens.find_one({"jti": jti})
+        db_token = self.mongo_connection.db.refresh_tokens.find_one(
+            {"jti": jti}
+        )
         if not db_token:
             raise TokenRefreshError("Refresh token not found")
 
         if db_token.get("used_at") is not None or db_token.get("is_revoked"):
             await self.revoke_token_family(token_family)
             raise TokenReuseDetected(
-                "Refresh token reuse detected. All tokens in this family have been revoked. "
-                "Please login again."
+                "Refresh token reuse detected. All tokens in this family have "
+                "been revoked. Please login again."
             )
 
-        if datetime.now(timezone.utc) > db_token["expires_at"]:
-            self.mongo_connection.db.refresh_tokens.refresh_tokens.update_one(
+        expires_at = db_token["expires_at"]
+        if isinstance(expires_at, datetime) and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if datetime.now(timezone.utc) > expires_at:
+            self.mongo_connection.db.refresh_tokens.update_one(
                 {"jti": jti}, {"$set": {"is_revoked": True}}
             )
             raise TokenRefreshError("Refresh token has expired")

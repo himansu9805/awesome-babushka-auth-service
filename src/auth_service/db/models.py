@@ -1,21 +1,27 @@
 """Database models for the auth service"""
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from bson import ObjectId
 from pydantic import BaseModel
 from pydantic.fields import Field
 
 
-class User(BaseModel):
-    """User model"""
+class BasicUserInfo(BaseModel):
+    """Base User Info model."""
 
     username: str = Field(..., examples=["johndoe", "janedoe"])
-    email: str = Field(..., examples=["john.doe@example.com", "jane.doe@example.com"])
-    password: str = Field(..., examples=["password123", "password456"])
+    email: str = Field(
+        ..., examples=["john.doe@example.com", "jane.doe@example.com"]
+    )
     verified: bool = Field(False, examples=[True, False])
     active: bool = Field(True, examples=[True, False])
+
+
+class User(BasicUserInfo):
+    """User model"""
+
+    password: str = Field(..., examples=["password123", "password456"])
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         examples=[datetime.now(timezone.utc)],
@@ -36,7 +42,8 @@ class ActivationKey(BaseModel):
         examples=[datetime.now(timezone.utc)],
     )
     expires_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=1),
+        default_factory=lambda: datetime.now(timezone.utc)
+        + timedelta(hours=1),
         examples=[datetime.now(timezone.utc) + timedelta(hours=1)],
     )
 
@@ -65,17 +72,27 @@ class RefreshToken(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     jti: str = Field(..., examples=["unique_token_id"])
     username: str = Field(..., examples=["user123", "user456"])
-    email: str = Field(..., examples=["john.doe@example.com", "jane.doe@example.com"])
-    token_family: str = Field(..., examples=["email_verification", "password_reset"])
+    email: str = Field(
+        ..., examples=["john.doe@example.com", "jane.doe@example.com"]
+    )
+    token_family: str = Field(
+        ..., examples=["email_verification", "password_reset"]
+    )
     is_revoked: bool = Field(False, examples=[True, False])
-    expires_at: datetime = Field(..., examples=[datetime.now(timezone.utc) + timedelta(hours=1)])
+    expires_at: datetime = Field(
+        ..., examples=[datetime.now(timezone.utc) + timedelta(hours=1)]
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         examples=[datetime.now(timezone.utc)],
     )
-    used_at: datetime | None = Field(default=None, examples=[datetime.now(timezone.utc), None])
+    used_at: datetime | None = Field(
+        default=None, examples=[datetime.now(timezone.utc), None]
+    )
     device_id: str | None = Field(default=None, examples=["device123", None])
-    ip_address: str | None = Field(default=None, examples=["192.168.1.1", None])
+    ip_address: str | None = Field(
+        default=None, examples=["192.168.1.1", None]
+    )
 
     class Config:
         """Pydantic configuration"""

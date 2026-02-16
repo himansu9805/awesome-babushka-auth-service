@@ -7,12 +7,13 @@ from fastapi.responses import RedirectResponse
 
 from auth_service.api.v1.auth import auth_router
 from auth_service.api.v1.token import token_router
+from auth_service.api.v1.user import user_router
 
 api = FastAPI(title="Auth Service", version="0.1.0")
 
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -20,6 +21,7 @@ api.add_middleware(
 
 api.include_router(auth_router, prefix="/api/v1")
 api.include_router(token_router, prefix="/api/v1")
+api.include_router(user_router, prefix="/api/v1")
 
 
 @api.get("/", include_in_schema=False)

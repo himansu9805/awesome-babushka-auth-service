@@ -25,7 +25,9 @@ async def validate_token(
     ### Returns:
     - **JSONResponse**: The validation status.
     """
-    result = await token_service.validate_token(access_token, expected_type=TokenType.BEARER)
+    result = await token_service.validate_token(
+        access_token, expected_type=TokenType.BEARER
+    )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=result,
@@ -34,7 +36,8 @@ async def validate_token(
 
 @token_router.get("/refresh")
 async def refresh_access_token(
-    request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """This route refreshes a user's access token.
 
@@ -51,4 +54,3 @@ async def refresh_access_token(
     return await token_service.refresh_access_token(
         refresh_token, device_info=device_info, ip_address=ip_address
     )
- 

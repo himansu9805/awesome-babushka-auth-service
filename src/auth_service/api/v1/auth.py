@@ -1,14 +1,25 @@
 """Routes for the auth service"""
 
-from fastapi import APIRouter, Depends, status, Request, HTTPException
+from fastapi import (
+    APIRouter,
+    Depends,
+    status,
+    Request,
+    HTTPException,
+    Response,
+)
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from auth_service.db.enums import TokenType
 from auth_service.db.schemas import UserCreate, LoginRequest
 from auth_service.services.auth import AuthService
-from auth_service.services.token import TokenService
-from auth_service.services.token import TokenPair, TokenRefreshError, TokenReuseDetected
+from auth_service.services.token import (
+    TokenService,
+    TokenRefreshError,
+    TokenReuseDetected,
+)
+from auth_service.core.config import settings
 
 auth_router = APIRouter(prefix="/auth", tags=["authentication"])
 auth_service = AuthService()
@@ -19,7 +30,8 @@ security = HTTPBearer()
 
 @auth_router.post("/register")
 async def register(user: UserCreate):
-    """This route registers a new user.
+    """
+    Register endpoint to create a user and sent account activation email.
 
     ### Args:
     - **user** (`UserCreate`): The user to register.
@@ -32,7 +44,10 @@ async def register(user: UserCreate):
         if response:
             return JSONResponse(
                 status_code=status.HTTP_201_CREATED,
-                content={"message": "User registered successfully. Please verify your email."},
+                content={
+                    "message": "User registered successfully. "
+                    "Please verify your email."
+                },
             )
         else:
             raise HTTPException(
@@ -46,17 +61,23 @@ async def register(user: UserCreate):
         )
 
 
-@auth_router.post("/login", response_model=TokenPair, status_code=status.HTTP_200_OK)
-async def login(credentials: LoginRequest, request: Request):
+@auth_router.post(
+    "/login",
+    status_code=status.HTTP_200_OK,
+)
+async def login(
+    credentials: LoginRequest, request: Request, response: Response
+):
     """
     Login endpoint to authenticate a user and provide access tokens.
 
     ### Args:
     - **credentials** (`LoginRequest`): The user's login credentials.
     - **request** (`Request`): The incoming HTTP request.
+    - **response** (`Response`): The outgoing HTTP response.
 
     ### Returns:
-    - **TokenPair**: The access and refresh tokens.
+    - **dict**: The access token.
     """
     user = auth_service.authenticate_user(credentials)
     if not user:
@@ -75,35 +96,52 @@ async def login(credentials: LoginRequest, request: Request):
         ip_address=ip_address,
     )
 
-    return token_pair
+    response.set_cookie(
+        key="refresh_token",
+        value=token_pair.refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    return {"access_token": token_pair.access_token}
 
 
-@auth_router.post("/refresh", response_model=TokenPair, status_code=status.HTTP_200_OK)
+@auth_router.get(
+    "/refresh",
+    status_code=status.HTTP_200_OK,
+)
 async def refresh_token(
-    request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)
+    request: Request,
+    response: Response,
 ):
     """
     Refresh access token using refresh token.
 
-    ### Args:
-    - **request** (`Request`): The incoming HTTP request.
-    - **credentials** (`HTTPAuthorizationCredentials`): The bearer token credentials.
-
     ### Returns:
-    - **TokenPair**: New access and refresh tokens.
+    - **dict**: New access and refresh tokens.
 
     ### Raises:
     - **HTTPException**: If token is invalid or reused.
     """
-    refresh_token = credentials.credentials
+    refresh_token = request.cookies.get("refresh_token", "")
     device_info = request.headers.get("User-Agent", "unknown")
     ip_address = request.client.host if request.client else "unknown"
 
     try:
-        new_tokens = token_service.refresh_access_token(
+        new_tokens = await token_service.refresh_access_token(
             refresh_token, device_info=device_info, ip_address=ip_address
         )
-        return new_tokens
+        response.set_cookie(
+            key="refresh_token",
+            value=new_tokens.refresh_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        response.status_code = status.HTTP_200_OK
+        return {"access_token": new_tokens.access_token}
     except TokenReuseDetected as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -118,21 +156,19 @@ async def refresh_token(
         )
 
 
-@auth_router.post("/logout", status_code=status.HTTP_200_OK)
-async def logout(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-):
+@auth_router.get("/logout", status_code=status.HTTP_200_OK)
+async def logout(request: Request, response: Response):
     """Logout a user by revoking their access token.
-
-    ### Args:
-    - **credentials** (`HTTPAuthorizationCredentials`): The bearer token credentials.
 
     ### Returns:
     - **JSONResponse**: Logout status message.
     """
     try:
-        refresh_token = credentials.credentials
-        payload = await token_service.decode_token(refresh_token, expected_type=TokenType.REFRESH)
+        refresh_token = request.cookies.get("refresh_token", "")
+        payload = await token_service.decode_token(
+            refresh_token,
+            expected_type=TokenType.REFRESH,
+        )
 
         jti = payload.get("jti", None)
         if not jti:
@@ -141,10 +177,14 @@ async def logout(
                 detail="Invalid token",
             )
         if token_service.revoke_token(jti):
-            return JSONResponse(
-                status_code=status.HTTP_200_OK,
-                content={"message": "Successfully logged out"},
+            response.delete_cookie(
+                key="refresh_token",
+                httponly=True,
+                secure=False,
+                samesite="lax",
             )
+            response.status_code = status.HTTP_200_OK
+            return {"message": "Successfully logged out"}
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -152,5 +192,6 @@ async def logout(
             )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid token: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid token: {str(e)}",
         )
