@@ -2,14 +2,13 @@
 
 from fastapi import (
     APIRouter,
-    Depends,
     status,
     Request,
     HTTPException,
     Response,
 )
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 
 from auth_service.db.enums import TokenType
 from auth_service.db.schemas import UserCreate, LoginRequest
@@ -79,32 +78,32 @@ async def login(
     ### Returns:
     - **dict**: The access token.
     """
-    user = auth_service.authenticate_user(credentials)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        user = auth_service.authenticate_user(credentials)
+        device_info = request.headers.get("User-Agent", "unknown")
+        ip_address = request.client.host if request.client else "unknown"
+
+        token_pair = await token_service.create_token_pair(
+            user_data=user,
+            device_info=device_info,
+            ip_address=ip_address,
         )
 
-    device_info = request.headers.get("User-Agent", "unknown")
-    ip_address = request.client.host if request.client else "unknown"
-
-    token_pair = await token_service.create_token_pair(
-        user_data=user,
-        device_info=device_info,
-        ip_address=ip_address,
-    )
-
-    response.set_cookie(
-        key="refresh_token",
-        value=token_pair.refresh_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_MINUTES * 60,
-    )
-    return {"access_token": token_pair.access_token}
+        response.set_cookie(
+            key="refresh_token",
+            value=token_pair.refresh_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        return {"access_token": token_pair.access_token}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 @auth_router.get(
@@ -163,6 +162,12 @@ async def logout(request: Request, response: Response):
     ### Returns:
     - **JSONResponse**: Logout status message.
     """
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=False,
+        samesite="lax",
+    )
     try:
         refresh_token = request.cookies.get("refresh_token", "")
         payload = await token_service.decode_token(
@@ -176,22 +181,8 @@ async def logout(request: Request, response: Response):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid token",
             )
-        if token_service.revoke_token(jti):
-            response.delete_cookie(
-                key="refresh_token",
-                httponly=True,
-                secure=False,
-                samesite="lax",
-            )
-            response.status_code = status.HTTP_200_OK
-            return {"message": "Successfully logged out"}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Token already revoked or invalid",
-            )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid token: {str(e)}",
-        )
+        await token_service.revoke_token(jti)
+    except Exception:
+        pass
+    response.status_code = status.HTTP_200_OK
+    return {"message": "Successfully logged out"}

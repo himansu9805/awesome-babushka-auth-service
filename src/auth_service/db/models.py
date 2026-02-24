@@ -5,23 +5,13 @@ from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from pydantic import BaseModel
 from pydantic.fields import Field
-
-
-class BasicUserInfo(BaseModel):
-    """Base User Info model."""
-
-    username: str = Field(..., examples=["johndoe", "janedoe"])
-    email: str = Field(
-        ..., examples=["john.doe@example.com", "jane.doe@example.com"]
-    )
-    verified: bool = Field(False, examples=[True, False])
-    active: bool = Field(True, examples=[True, False])
+from auth_service.db.schemas import BasicUserInfo
 
 
 class User(BasicUserInfo):
     """User model"""
 
-    password: str = Field(..., examples=["password123", "password456"])
+    hashed_password: str = Field(..., examples=["password123", "password456"])
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         examples=[datetime.now(timezone.utc)],

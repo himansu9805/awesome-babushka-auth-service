@@ -49,9 +49,8 @@ class AuthService:
             hashed_password = pwd_context.hash(user.password)
             verification_token = uuid4().hex
             db_user = User(
-                username=user.username,
-                email=user.email,
-                password=hashed_password,
+                **user.model_dump(exclude={"password"}),
+                hashed_password=hashed_password,
                 verified=False,
                 active=True,
             )
@@ -103,7 +102,9 @@ class AuthService:
         if not user_details:
             raise ValueError("User does not exist")
         user_details = User(**user_details)
-        if not pwd_context.verify(credentials.password, user_details.password):
+        if not pwd_context.verify(
+            credentials.password, user_details.hashed_password
+        ):
             raise ValueError("Invalid credentials")
         token_data = user_details.model_dump(
             exclude={
